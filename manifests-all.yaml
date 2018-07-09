@@ -1138,7 +1138,7 @@ spec:
         workingDir: /opt/grafana-import-dashboards
         args:
           - >
-            do sleep 60; done;
+            sleep 60;
             for file in *-datasource.json ; do
               if [ -e "$file" ] ; then
                 echo "importing $file" &&
