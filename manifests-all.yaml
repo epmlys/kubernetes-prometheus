@@ -332,6 +332,64 @@ spec:
         emptyDir: {}
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-k8s
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus-k8s
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources:
+  - configmaps
+  verbs: ["get"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: core
+  annotations:
+    prometheus.io/scrape: 'true'
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      protocol: TCP
+      name: webui
+  selector:
+    app: prometheus
+    component: core
+---
+apiVersion: v1
 kind: Service
 metadata:
   annotations:
@@ -1131,6 +1189,11 @@ spec:
     component: core
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: prometheus-core
+  namespace: monitoring
 data:
   prometheus.yaml: |
     global:
@@ -1164,13 +1227,6 @@ data:
             - source_labels: [__meta_kubernetes_pod_name]
               action: replace
               target_label: kubernetes_pod_name
-
----
-kind: ConfigMap
-metadata:
-  creationTimestamp: null
-  name: prometheus-core
-  namespace: monitoring
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -1459,67 +1515,9 @@ data:
         SUMMARY = "{{$labels.instance}}: High memory usage detected",
         DESCRIPTION = "{{$labels.instance}}: Memory usage is above 75% (current value is: {{ $value }})"
       }
+---
 kind: ConfigMap
 metadata:
   creationTimestamp: null
   name: prometheus-rules
   namespace: monitoring
----
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: prometheus
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: prometheus
-subjects:
-- kind: ServiceAccount
-  name: prometheus-k8s
-  namespace: monitoring
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
-metadata:
-  name: prometheus
-rules:
-- apiGroups: [""]
-  resources:
-  - nodes
-  - services
-  - endpoints
-  - pods
-  verbs: ["get", "list", "watch"]
-- apiGroups: [""]
-  resources:
-  - configmaps
-  verbs: ["get"]
-- nonResourceURLs: ["/metrics"]
-  verbs: ["get"]
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: prometheus-k8s
-  namespace: monitoring
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: prometheus
-  namespace: monitoring
-  labels:
-    app: prometheus
-    component: core
-  annotations:
-    prometheus.io/scrape: 'true'
-spec:
-  type: NodePort
-  ports:
-    - port: 9090
-      protocol: TCP
-      name: webui
-  selector:
-    app: prometheus
-    component: core
