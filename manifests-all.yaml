@@ -1441,6 +1441,11 @@ spec:
   type: ClusterIP
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: prometheus-rules
+  namespace: monitoring
 data:
   bx-num-goroutines.rules: |
     ALERT NumGoroutineHigh
@@ -1515,9 +1520,3 @@ data:
         SUMMARY = "{{$labels.instance}}: High memory usage detected",
         DESCRIPTION = "{{$labels.instance}}: Memory usage is above 75% (current value is: {{ $value }})"
       }
----
-kind: ConfigMap
-metadata:
-  creationTimestamp: null
-  name: prometheus-rules
-  namespace: monitoring
